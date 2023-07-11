@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Happiness</title>
+</head>
+<style>
+    body,
+    html {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+
+</style>
+</head>
+
+<body>
+    <h1>2019 World Happiness Chart</h1>
+    <svg id="svg" width="1000" height="600"></svg>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        async function handleData() {
+            const data = await d3.csv('2019.csv')
+            const filteredData = data.slice(0, 10)
+            const margin = { top: 20, right: 10, bottom: 0, left: 70 }
+            const width = 1000 - (margin.left + margin.right)
+            const height = 550 - (margin.top + margin.bottom)
+
+            const countries = filteredData.map(d => d.Country)
+            // x scale 
+            const xscale = d3.scaleBand()
+                .domain(countries)
+                .range([margin.left, width + margin.left])
+                .padding(0.1) // space between bars
+
+            // y scale 
+            const scoreExtent = d3.extent(filteredData, d => d.Score)
+            const minExtent = Math.floor(scoreExtent[0])
+            const maxExtent = Math.ceil(scoreExtent[1])
+            const yscale = d3.scaleLinear()
+                .domain([minExtent, maxExtent]) 
+                .range([height - margin.bottom, margin.top])
+
+            // Select the SVG (root node)
+            const svg = d3.select('#svg')
+
+            // bars group
+            const barGroup = svg.append('g')
+
+            //colour scale
+            const colorScale = d3.scaleOrdinal()
+                .domain(countries)
+                .range(d3.quantize(d3.interpolateRainbow, countries.length))
+
+            // Make the bars
+            barGroup
+                .selectAll('rect')
+                .data(filteredData)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', (d, i) => xscale(d.Country))
+                .attr('y', d => yscale(d.Score))
+                .attr('width', xscale.bandwidth())
+                .attr('height', d => height - yscale(d.Score))
+                .attr('fill', d => colorScale(d.Country))
+
+            const bottomAxis = d3.axisBottom(xscale)
+
+            svg
+                .append('g')
+                .attr('transform', `translate(${0}, ${height})`)
+                .call(bottomAxis)
+
+            const leftAxis = d3.axisLeft(yscale)
+                .tickFormat(d3.format('.2s'))
+                .ticks(10)
+
+            svg
+                .append('g')
+                .attr('transform', `translate(${margin.left}, 0)`)
+                .call(leftAxis)
+
+            // Add x-axis label
+            svg
+                .append('text')
+                .attr('x', width / 2 + margin.left)
+                .attr('y', height + margin.top + 30)
+                .style('text-anchor', 'middle')
+                .text('Country');
+
+            // Add y-axis label
+            svg
+                .append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('x', -(height / 2 + margin.top))
+                .attr('y', margin.left - 50)
+                .style('text-anchor', 'middle')
+                .text('Score');
+        }
+
+        handleData()
+    </script>
+</body>
+
+</html>
